@@ -16,11 +16,10 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-
     <application
+        android:name=".CloudApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:name="CloudApplication"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
@@ -37,6 +36,7 @@
             <!-- Use this intent filter to get voice searches, like "Play The Beatles" -->
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -49,6 +49,8 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <activity android:name=".ui.TestActivity"></activity>
     </application>
 
 </manifest>

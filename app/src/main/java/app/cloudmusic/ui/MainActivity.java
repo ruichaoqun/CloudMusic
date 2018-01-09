@@ -80,11 +80,11 @@ public class MainActivity extends BaseMediaActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WAKE_LOCK,Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO,Manifest.permission.CAMERA},
+                100);
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK)!= PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WAKE_LOCK},
-                    100);
+
         }
     }
 
