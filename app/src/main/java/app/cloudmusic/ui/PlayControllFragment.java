@@ -1,7 +1,6 @@
 package app.cloudmusic.ui;
 
-import android.content.Context;
-import android.net.Uri;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -24,16 +23,20 @@ import java.util.concurrent.TimeUnit;
 import app.cloudmusic.R;
 import app.cloudmusic.utils.imageloader.ImageLoader;
 import app.cloudmusic.widget.PlayPauseView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import butterknife.Unbinder;
 
-public class PlayControllFragment extends Fragment implements View.OnClickListener {
+public class PlayControllFragment extends Fragment{
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
 
     private ImageView cover;
-    private TextView title,artist;
+    private TextView title, artist;
     private ImageView playList;
     private ImageLoader imageLoader;
     private PlayPauseView playPauseView;
+    private View baseUi;
 
     private final ScheduledExecutorService mExecutorService =
             Executors.newSingleThreadScheduledExecutor();
@@ -57,10 +60,10 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
         playList = (ImageView) view.findViewById(R.id.play_list);
         title = (TextView) view.findViewById(R.id.title);
         artist = (TextView) view.findViewById(R.id.artist);
+        baseUi = view.findViewById(R.id.base_ui);
         title.setSelected(true);
-        playPauseView.setOnClickListener(this);
-        playList.setOnClickListener(this);
         imageLoader = new ImageLoader(getActivity());
+        ButterKnife.bind(this, view);
         return view;
     }
 
@@ -68,7 +71,7 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
     public void onStart() {
         super.onStart();
         MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(getActivity());
-        if(controllerCompat != null){
+        if (controllerCompat != null) {
             onConnected();
         }
     }
@@ -89,7 +92,7 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
         if (metadata == null) {
             return;
         }
-        imageLoader.DisplayImage(metadata.getDescription().getMediaUri().toString(),cover);
+        imageLoader.DisplayImage(metadata.getDescription().getMediaUri().toString(), cover);
         title.setText(metadata.getDescription().getTitle());
         artist.setText(metadata.getDescription().getDescription());
         int duration = (int) metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
@@ -104,7 +107,7 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
             return;
         }
         mLastPlaybackState = state;
-        switch (state.getState()){
+        switch (state.getState()) {
             case PlaybackStateCompat.STATE_PLAYING:
                 playPauseView.setState(PlayPauseView.PLAY_STATE_PLAYING);
                 scheduleSeekbarUpdate();
@@ -124,20 +127,22 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
         }
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()){
+    @OnClick({R.id.play_list, R.id.play, R.id.card_view})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.play_list:
+                break;
             case R.id.play:
                 MediaControllerCompat controller = MediaControllerCompat.getMediaController(getActivity());
-                if(controller == null){
+                if (controller == null) {
                     onConnected();
                     return;
                 }
                 PlaybackStateCompat state = controller.getPlaybackState();
-                if(state != null){
+                if (state != null) {
                     MediaControllerCompat.TransportControls controls =
                             controller.getTransportControls();
-                    switch (state.getState()){
+                    switch (state.getState()) {
                         case PlaybackStateCompat.STATE_PLAYING:
                         case PlaybackStateCompat.STATE_BUFFERING:
                             controls.pause();
@@ -149,9 +154,13 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
                             scheduleSeekbarUpdate();
                             break;
                         default:
-                            Log.d("PlayControllFragment", "onClick with state "+ state.getState());
+                            Log.d("PlayControllFragment", "onClick with state " + state.getState());
                     }
                 }
+                break;
+            case R.id.card_view:
+                Intent intent = new Intent(getActivity(), FullPlayActivity.class);
+                startActivity(intent);
                 break;
         }
     }
@@ -159,13 +168,13 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
     private MediaControllerCompat.Callback mCallback = new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            Log.w("AAA","onPlaybackStateChanged");
+            Log.w("AAA", "onPlaybackStateChanged");
             PlayControllFragment.this.onPlaybackStateChanged(state);
         }
 
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
-            Log.w("AAA","onMetadataChanged");
+            Log.w("AAA", "onMetadataChanged");
             PlayControllFragment.this.onMetadataChanged(metadata);
         }
 
@@ -219,4 +228,5 @@ public class PlayControllFragment extends Fragment implements View.OnClickListen
         stopSeekbarUpdate();
         mExecutorService.shutdown();
     }
+
 }

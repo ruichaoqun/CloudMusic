@@ -138,6 +138,26 @@ public class ImageLoader {
         }
     }
 
+    public static Bitmap getBitmapFromMediaData(String url){
+        try {
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(url);
+            Bitmap bitmap = null;
+
+            byte[] data = mmr.getEmbeddedPicture();
+
+            if (data != null) {
+                bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                return bitmap;
+            } else {
+                return null;
+            }
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+            return null;
+        }
+    }
+
     //decodes image and scales it to reduce memory consumption
     private Bitmap decodeFile(File f) {
         try {

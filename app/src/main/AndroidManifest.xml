@@ -50,7 +50,10 @@
             </intent-filter>
         </service>
 
-        <activity android:name=".ui.TestActivity"></activity>
+        <activity android:name=".ui.TestActivity" />
+        <activity android:name=".ui.FullPlayActivity">
+
+        </activity>
     </application>
 
 </manifest>

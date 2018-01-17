@@ -63,6 +63,8 @@ public class BaseMediaActivity extends AppCompatActivity{
     }
 
     protected void showPlaybackControls() {
+        if(!mControlsFragment.isHidden())
+            return;
         getSupportFragmentManager().beginTransaction()
 //                .setCustomAnimations(
 //                        R.animator.slide_in_from_bottom, R.animator.slide_out_to_bottom,

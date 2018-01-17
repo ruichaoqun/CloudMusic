@@ -337,12 +337,16 @@ public class PlaybackManager implements Playback.Callback {
 
         @Override
         public void onSkipToNext() {
-            super.onSkipToNext();
+            currentPosition = currentPosition == currentQueue.size()-1?0:currentPosition+1;
+            mediaSessionCompat.setMetadata(musicProvider.getMusicById(currentQueue.get(currentPosition).getMediaId()));
+            handlePlayRequest();
         }
 
         @Override
         public void onSkipToPrevious() {
-            super.onSkipToPrevious();
+            currentPosition = currentPosition == 0?currentQueue.size()-1:currentPosition-1;
+            mediaSessionCompat.setMetadata(musicProvider.getMusicById(currentQueue.get(currentPosition).getMediaId()));
+            handlePlayRequest();
         }
 
         @Override

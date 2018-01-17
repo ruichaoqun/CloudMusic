@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="#ffffff"/>
+            <corners android:radius="5dp"/>
+        </shape>
+        <!--<nine-patch android:src="@drawable/play_plybar_bg" />-->
+    </item>
+    <item android:id="@android:id/secondaryProgress">
+        <scale android:scaleWidth="100%">
+            <shape android:shape="rectangle">
+                <solid android:color="#ffffff"/>
+                <corners android:radius="5dp"/>
+            </shape>
+            <!--<nine-patch android:src="@drawable/play_plybar_ready" />-->
+        </scale>
+    </item>
+    <item android:id="@android:id/progress">
+        <scale android:scaleWidth="100%">
+            <shape android:shape="rectangle">
+                <solid android:color="?android:attr/colorAccent"/>
+                <corners android:radius="5dp"/>
+            </shape>
+            <!--<nine-patch android:src="@drawable/play_plybar_red" />-->
+        </scale>
+    </item>
+</layer-list>
