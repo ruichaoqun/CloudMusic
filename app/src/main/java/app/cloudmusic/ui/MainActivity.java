@@ -70,6 +70,7 @@ public class MainActivity extends BaseMediaActivity
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(broswerAdapter);
         broswerAdapter.setOnItemClickListener(this);
+        Log.w("BBB",Thread.currentThread().getName());
 
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

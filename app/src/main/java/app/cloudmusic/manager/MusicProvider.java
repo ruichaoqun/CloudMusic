@@ -28,6 +28,7 @@ public class MusicProvider {
 
     private MusicProviderSource mSource;
     private ConcurrentMap<String, MediaMetadataCompat> mLocalMusicList;
+    private List<MediaBrowserCompat.MediaItem> currentList;
 
     enum State {
         NON_INITIALIZED, INITIALIZING, INITIALIZED
@@ -100,18 +101,20 @@ public class MusicProvider {
     }
 
     public List<MediaBrowserCompat.MediaItem> getChild(String parentId ){
-        List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
+        if(currentList != null)
+            return currentList;
+        currentList = new ArrayList<>();
         if(parentId == Contaces.SERVICE_ID_LOCALMUSIC){//返回本地所有音乐
             for (MediaMetadataCompat data:mLocalMusicList.values()) {
-                mediaItems.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+                currentList.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
             }
         }
         if(parentId == Contaces.GET_PALYING_LIST){//返回本地所有音乐
             for (MediaMetadataCompat data:mLocalMusicList.values()) {
-                mediaItems.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+                currentList.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
             }
         }
-        return mediaItems;
+        return currentList;
     }
 
     public MediaMetadataCompat getMusicById(String musidId){

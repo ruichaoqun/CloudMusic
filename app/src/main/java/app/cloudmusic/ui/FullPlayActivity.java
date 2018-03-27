@@ -50,7 +50,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class FullPlayActivity extends AppCompatActivity {
+public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener {
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
 
@@ -113,6 +113,7 @@ public class FullPlayActivity extends AppCompatActivity {
     private final Handler mHandler = new Handler();
     private ScheduledFuture<?> mScheduleFuture;
     private PlaybackStateCompat mLastPlaybackState;
+    private List<MediaBrowserCompat.MediaItem> playList;
 
     private final Runnable mUpdateProgressTask = new Runnable() {
         @Override
@@ -151,22 +152,25 @@ public class FullPlayActivity extends AppCompatActivity {
     }
 
     private void initAblumFragment(List<MediaBrowserCompat.MediaItem> children) {
+        playList = children;
         List<String> list = new ArrayList<>();
         for (int i = 0; i < children.size(); i++) {
             list.add(children.get(i).getDescription().getMediaUri().toString());
-            viewpager.setScrollMode(UltraViewPager.ScrollMode.HORIZONTAL);
-            UltraPagerAdapter adapter = new UltraPagerAdapter(this,list);
-            viewpager.setAdapter(adapter);
-            viewpager.initIndicator();
-            //设定页面循环播放
-            viewpager.setInfiniteLoop(true);
         }
+        viewpager.setScrollMode(UltraViewPager.ScrollMode.HORIZONTAL);
+        UltraPagerAdapter adapter = new UltraPagerAdapter(this,list);
+        viewpager.setAdapter(adapter);
+        viewpager.initIndicator();
+        //设定页面循环播放
+        viewpager.setInfiniteLoop(true);
+        viewpager.setOnPageChangeListener(this);
         String mediaUri = MediaControllerCompat.getMediaController(this).getMetadata().getDescription().getMediaUri().toString();
-        for (int i = 0; i < list.size(); i++) {
-            if(TextUtils.equals(list.get(i),mediaUri)){
-                break;
-            }
-        }
+//        for (int i = 0; i < list.size(); i++) {
+//            if(TextUtils.equals(list.get(i),mediaUri)){
+//                viewpager.setCurrentItem(i);
+//                break;
+//            }
+//        }
         viewpager.setVisibility(View.VISIBLE);
     }
 
@@ -408,4 +412,27 @@ public class FullPlayActivity extends AppCompatActivity {
     };
 
 
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        Log.w("BBB","onPageSelected");
+        int truePosition = position%playList.size();
+        String url = playList.get(truePosition).getDescription().getMediaId().toString();
+        MediaMetadataCompat mediaMetadataCompat = MediaControllerCompat.getMediaController(this).getMetadata();
+        if(mediaMetadataCompat != null){
+            if(!TextUtils.equals(mediaMetadataCompat.getDescription().getMediaUri().toString(),url)){
+                MediaControllerCompat.getMediaController(this).getTransportControls().playFromMediaId(url,null);
+                scheduleSeekbarUpdate();
+            }
+        }
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int state) {
+
+    }
 }

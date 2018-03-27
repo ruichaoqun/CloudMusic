@@ -22,11 +22,14 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
+import android.os.Handler;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
+import android.util.Log;
 
 
 import java.io.IOException;
@@ -156,11 +159,10 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
     }
 
     @Override
-    public void play(MediaBrowserCompat.MediaItem item) {
+    public void play(final MediaBrowserCompat.MediaItem item) {
         mPlayOnFocusGain = true;
         //获取音频焦点
         tryToGetAudioFocus();
-
         registerAudioNoisyReceiver();
         String mediaId = item.getDescription().getMediaId();
         boolean mediaHasChanged = !TextUtils.equals(mediaId, mCurrentMediaId);
@@ -175,41 +177,49 @@ public class LocalPlayback implements Playback, AudioManager.OnAudioFocusChangeL
             mState = PlaybackStateCompat.STATE_STOPPED;
             relaxResources(false); // release everything except MediaPlayer
 
-            String source = item.getDescription().getMediaUri().toString();
 //            if (source != null) {
 //                source = source.replaceAll(" ", "%20"); // Escape spaces for URLs
 //            }
 
-            try {
-                createMediaPlayerIfNeeded();
+            new Thread(){
+                @Override
+                public void run() {
+                    super.run();
+                    try {
+                        String source = item.getDescription().getMediaUri().toString();
+                        createMediaPlayerIfNeeded();
+                        mState = PlaybackStateCompat.STATE_BUFFERING;
 
-                mState = PlaybackStateCompat.STATE_BUFFERING;
+                        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
-                mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                mMediaPlayer.setDataSource(source);
+                        mMediaPlayer.setDataSource(source);
 
-                // Starts preparing the media player in the background. When
-                // it's done, it will call our OnPreparedListener (that is,
-                // the onPrepared() method on this class, since we set the
-                // listener to 'this'). Until the media player is prepared,
-                // we *cannot* call start() on it!
-                mMediaPlayer.prepareAsync();
 
-                // If we are streaming from the internet, we want to hold a
-                // Wifi lock, which prevents the Wifi radio from going to
-                // sleep while the song is playing.
-                mWifiLock.acquire();
+                        // Starts preparing the media player in the background. When
+                        // it's done, it will call our OnPreparedListener (that is,
+                        // the onPrepared() method on this class, since we set the
+                        // listener to 'this'). Until the media player is prepared,
+                        // we *cannot* call start() on it!
+                        mMediaPlayer.prepareAsync();
 
-                if (mCallback != null) {
-                    mCallback.onPlaybackStatusChanged(mState);
+                        // If we are streaming from the internet, we want to hold a
+                        // Wifi lock, which prevents the Wifi radio from going to
+                        // sleep while the song is playing.
+                        mWifiLock.acquire();
+
+                        if (mCallback != null) {
+                            mCallback.onPlaybackStatusChanged(mState);
+                        }
+
+                    } catch (IOException ex) {
+                        LogHelper.e(TAG, ex, "Exception playing song");
+                        if (mCallback != null) {
+                            mCallback.onError(ex.getMessage());
+                        }
+                    }
                 }
+            }.start();
 
-            } catch (IOException ex) {
-                LogHelper.e(TAG, ex, "Exception playing song");
-                if (mCallback != null) {
-                    mCallback.onError(ex.getMessage());
-                }
-            }
         }
     }
 
