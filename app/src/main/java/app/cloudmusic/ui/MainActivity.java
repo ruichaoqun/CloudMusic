@@ -15,6 +15,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -163,15 +164,9 @@ public class MainActivity extends BaseMediaActivity
     @Override
     protected void onMediaControllerConnected() {
         super.onMediaControllerConnected();
-        try {
-            MediaControllerCompat mediaController = new MediaControllerCompat(this, MediaControllerCompat.getMediaController(this).getSessionToken());
-            MediaControllerCompat.setMediaController(this,mediaController);
             mMediaBrowser.unsubscribe(Contaces.SERVICE_ID_LOCALMUSIC);
             mMediaBrowser.subscribe(Contaces.SERVICE_ID_LOCALMUSIC,subscriptionCallback);
             MediaControllerCompat.getMediaController(this).registerCallback(mMediaControllerCallback);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
     }
 
     private MediaBrowserCompat.SubscriptionCallback subscriptionCallback = new MediaBrowserCompat.SubscriptionCallback() {

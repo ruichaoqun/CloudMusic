@@ -106,6 +106,11 @@ public class MusicProvider {
                 mediaItems.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
             }
         }
+        if(parentId == Contaces.GET_PALYING_LIST){//返回本地所有音乐
+            for (MediaMetadataCompat data:mLocalMusicList.values()) {
+                mediaItems.add(new MediaBrowserCompat.MediaItem(data.getDescription(),MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+            }
+        }
         return mediaItems;
     }
 

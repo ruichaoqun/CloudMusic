@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -17,6 +19,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -27,11 +30,16 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.tmall.ultraviewpager.UltraViewPager;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import app.cloudmusic.Contaces;
 import app.cloudmusic.R;
 import app.cloudmusic.service.MusicService;
 import app.cloudmusic.utils.MediaUtils;
@@ -95,7 +103,7 @@ public class FullPlayActivity extends AppCompatActivity {
     @BindView(R.id.bg_gaosi)
     ImageView bgGaosi;
     @BindView(R.id.viewpager)
-    ViewPager viewpager;
+    UltraViewPager viewpager;
 
     private ImageLoader imageLoader;
     private MediaBrowserCompat browserServiceCompat;
@@ -140,11 +148,26 @@ public class FullPlayActivity extends AppCompatActivity {
         browserServiceCompat = new MediaBrowserCompat(this,
                 new ComponentName(this, MusicService.class), mConnectionCallback, null);
 
-        setupViewPager();
     }
 
-    private void setupViewPager() {
-
+    private void initAblumFragment(List<MediaBrowserCompat.MediaItem> children) {
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < children.size(); i++) {
+            list.add(children.get(i).getDescription().getMediaUri().toString());
+            viewpager.setScrollMode(UltraViewPager.ScrollMode.HORIZONTAL);
+            UltraPagerAdapter adapter = new UltraPagerAdapter(this,list);
+            viewpager.setAdapter(adapter);
+            viewpager.initIndicator();
+            //设定页面循环播放
+            viewpager.setInfiniteLoop(true);
+        }
+        String mediaUri = MediaControllerCompat.getMediaController(this).getMetadata().getDescription().getMediaUri().toString();
+        for (int i = 0; i < list.size(); i++) {
+            if(TextUtils.equals(list.get(i),mediaUri)){
+                break;
+            }
+        }
+        viewpager.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -317,6 +340,10 @@ public class FullPlayActivity extends AppCompatActivity {
         mediaController.registerCallback(mMediaControllerCallback);
         onMetadataChanged(mediaController.getMetadata());
         onPlaybackStateChanged(mediaController.getPlaybackState());
+
+        browserServiceCompat.unsubscribe(Contaces.GET_PALYING_LIST);
+        browserServiceCompat.subscribe(Contaces.GET_PALYING_LIST,subscriptionCallback);
+        MediaControllerCompat.getMediaController(this).registerCallback(mMediaControllerCallback);
     }
 
     private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
@@ -357,4 +384,28 @@ public class FullPlayActivity extends AppCompatActivity {
         stopSeekbarUpdate();
         mExecutorService.shutdown();
     }
+
+    private MediaBrowserCompat.SubscriptionCallback subscriptionCallback = new MediaBrowserCompat.SubscriptionCallback() {
+        @Override
+        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaBrowserCompat.MediaItem> children) {
+            initAblumFragment(children);
+        }
+
+        @Override
+        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaBrowserCompat.MediaItem> children, @NonNull Bundle options) {
+            super.onChildrenLoaded(parentId, children, options);
+        }
+
+        @Override
+        public void onError(@NonNull String parentId) {
+            super.onError(parentId);
+        }
+
+        @Override
+        public void onError(@NonNull String parentId, @NonNull Bundle options) {
+            super.onError(parentId, options);
+        }
+    };
+
+
 }

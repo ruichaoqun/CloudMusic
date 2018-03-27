@@ -51,8 +51,9 @@ public class BaseMediaActivity extends AppCompatActivity{
     @Override
     protected void onStop() {
         super.onStop();
-        if (getSupportMediaController() != null) {
-            getSupportMediaController().unregisterCallback(mMediaControllerCallback);
+
+        if (MediaControllerCompat.getMediaController(this) != null) {
+            MediaControllerCompat.getMediaController(this).unregisterCallback(mMediaControllerCallback);
         }
         mMediaBrowser.disconnect();
     }

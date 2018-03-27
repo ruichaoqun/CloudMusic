@@ -79,7 +79,7 @@ public class RenderScriptUtil {
         final android.support.v8.renderscript.Allocation input = android.support.v8.renderscript.Allocation.createFromBitmap(rs, blurTemplate);
         final android.support.v8.renderscript.Allocation output = android.support.v8.renderscript.Allocation.createTyped(rs, input.getType());
         final android.support.v8.renderscript.ScriptIntrinsicBlur script = android.support.v8.renderscript.ScriptIntrinsicBlur.create(rs, android.support.v8.renderscript.Element.U8_4(rs));
-        script.setRadius(15f);
+        script.setRadius(25f);
         script.setInput(input);
         script.forEach(output);
         output.copyTo(blurTemplate);

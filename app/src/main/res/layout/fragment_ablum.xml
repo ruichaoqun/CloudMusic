@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     tools:context="app.cloudmusic.ui.AblumFragment">
 
-    <app.cloudmusic.utils.CircleImageView
+    <app.cloudmusic.widget.CircleImageView
         android:id="@+id/imageView"
         android:layout_width="263dp"
         android:layout_height="263dp"

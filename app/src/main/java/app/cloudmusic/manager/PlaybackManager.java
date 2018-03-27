@@ -331,8 +331,8 @@ public class PlaybackManager implements Playback.Callback {
         }
 
         @Override
-        public void onSetShuffleModeEnabled(boolean enabled) {
-            super.onSetShuffleModeEnabled(enabled);
+        public void onSetShuffleMode(int shuffleMode) {
+            super.onSetShuffleMode(shuffleMode);
         }
 
         @Override

@@ -14,6 +14,7 @@ import android.support.v4.media.MediaBrowserServiceCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.text.TextUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -24,6 +25,8 @@ import app.cloudmusic.manager.MusicProvider;
 import app.cloudmusic.manager.Playback;
 import app.cloudmusic.manager.PlaybackManager;
 import app.cloudmusic.utils.LogHelper;
+
+import static app.cloudmusic.Contaces.SERVICE_ID_LOCALMUSIC;
 
 /**
  * Created by Administrator on 2017/11/6.
@@ -101,22 +104,37 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
-        return new BrowserRoot(Contaces.SERVICE_ID_LOCALMUSIC,null);
+        return new BrowserRoot(SERVICE_ID_LOCALMUSIC,null);
     }
 
     @Override
     public void onLoadChildren(@NonNull final String parentId, @NonNull final Result<List<MediaBrowserCompat.MediaItem>> result) {
-        if(musicProvider.isInitialized()){//已加载完成，直接返回搜索结果
-            result.sendResult(musicProvider.getChild(parentId));
-        }else{
-            result.detach();
-            //异步加载
-            musicProvider.retrieveMediaAsync(new MusicProvider.Callback() {
-                @Override
-                public void onMusicCatalogReady(boolean success) {
-                    result.sendResult(musicProvider.getChild(parentId));
-                }
-            });
+        if(TextUtils.equals(Contaces.GET_PALYING_LIST,parentId)){//订阅当前播放列表
+            if(musicProvider.isInitialized()){//已加载完成，直接返回搜索结果
+                result.sendResult(musicProvider.getChild(parentId));
+            }else{
+                result.detach();
+                //异步加载
+                musicProvider.retrieveMediaAsync(new MusicProvider.Callback() {
+                    @Override
+                    public void onMusicCatalogReady(boolean success) {
+                        result.sendResult(musicProvider.getChild(parentId));
+                    }
+                });
+            }
+        }else if(TextUtils.equals(Contaces.SERVICE_ID_LOCALMUSIC,parentId)){//订阅本地音乐
+            if(musicProvider.isInitialized()){//已加载完成，直接返回搜索结果
+                result.sendResult(musicProvider.getChild(parentId));
+            }else{
+                result.detach();
+                //异步加载
+                musicProvider.retrieveMediaAsync(new MusicProvider.Callback() {
+                    @Override
+                    public void onMusicCatalogReady(boolean success) {
+                        result.sendResult(musicProvider.getChild(parentId));
+                    }
+                });
+            }
         }
     }
 
