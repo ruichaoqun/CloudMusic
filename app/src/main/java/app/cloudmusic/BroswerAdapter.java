@@ -79,7 +79,6 @@ public class BroswerAdapter extends RecyclerView.Adapter<BroswerAdapter.ViewHold
             if (data != null) {
                 bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 long time2 = System.currentTimeMillis();
-                Log.w("AAA", (time2-time1)/1000f+"");
                 return bitmap;
             } else {
                 return null;

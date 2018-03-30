@@ -17,11 +17,12 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 
 import app.cloudmusic.Contaces;
+import app.cloudmusic.data.MediaDataInfo;
 import app.cloudmusic.utils.LogHelper;
 
-import static app.cloudmusic.manager.PlaybackManager.PlayMode.ORDER_CYCLE;
 
 /**
  * Created by Administrator on 2017/11/13.
@@ -31,31 +32,19 @@ public class PlaybackManager implements Playback.Callback {
     private static final String TAG = LogHelper.makeLogTag(PlaybackManager.class);
 
     private MediaSessionCompat.Callback mMediaSessionCallback;
-    private List<MediaBrowserCompat.MediaItem> currentQueue = new ArrayList<>();
-    private int currentPosition = 0;
     private MediaSessionCompat mediaSessionCompat;
     private MusicProvider musicProvider;
     private Playback playback;
     private PlaybackServiceCallback serviceCallback;
-    //设置播放模式
+    private QueueManager queueManager;
+    private int repeatMode = PlaybackStateCompat.SHUFFLE_MODE_INVALID;
+    private  Random random = new Random();
 
-    /**
-     * ORDER:顺序
-     * RANDOM:随机
-     * SINGLE：单曲
-     * SINGLE_CYCLE：单曲循环
-     * ORDER_CYCLE：顺序循环
-     */
-    public enum PlayMode{
-        ORDER,RANDOM,SINGLE_CYCLE,SINGLE,ORDER_CYCLE
-    }
-
-    private PlayMode playMode = ORDER_CYCLE;
-
-    public PlaybackManager(PlaybackServiceCallback serviceCallback,MusicProvider musicProvider,Playback playback) {
+    public PlaybackManager(PlaybackServiceCallback serviceCallback,MusicProvider musicProvider,Playback playback,QueueManager queueManager) {
         this.serviceCallback = serviceCallback;
         this.musicProvider = musicProvider;
         this.playback = playback;
+        this.queueManager = queueManager;
         playback.setCallback(this);
         mMediaSessionCallback = new MediaSessionCallback();
     }
@@ -77,10 +66,10 @@ public class PlaybackManager implements Playback.Callback {
      */
     public void handlePlayRequest() {
         LogHelper.d(TAG, "handlePlayRequest: mState=" + playback.getState());
-        MediaBrowserCompat.MediaItem currentMusic = currentQueue.get(currentPosition);
-        if (currentMusic != null) {
+        MediaSessionCompat.QueueItem item = queueManager.getCurrentMusic();
+        if (item != null) {
             serviceCallback.onPlaybackStart();
-            playback.play(currentMusic);
+            playback.play(item);
         }
     }
 
@@ -94,7 +83,7 @@ public class PlaybackManager implements Playback.Callback {
     public void handleStopRequest(String withError){
         playback.stop(true);
         serviceCallback.onPlaybackStop();
-        //updatePlaybackState(withError);
+        updatePlaybackState(withError);
     }
 
 
@@ -104,34 +93,33 @@ public class PlaybackManager implements Playback.Callback {
      */
     @Override
     public void onCompletion() {
-        switch (playMode){
-            case ORDER_CYCLE:
-                if(currentPosition == currentQueue.size() - 1)
-                    currentPosition = 0;
-                else
-                    currentPosition++;
+        switch (repeatMode){
+            case PlaybackStateCompat.REPEAT_MODE_INVALID:
+                //无效
                 break;
-            case ORDER:
-                if(currentPosition == currentQueue.size() - 1)
-                    currentPosition = -1;
-                else
-                    currentPosition++;
+            case PlaybackStateCompat.REPEAT_MODE_NONE:
+                //播放完当前歌曲列表所有歌曲即停止播放
+                if(!queueManager.isLastMusic()){
+                    queueManager.skipQueuePosition(1);
+                    handlePlayRequest();
+                }else{
+                    handleStopRequest("");
+                }
                 break;
-            case SINGLE:
-                currentPosition = -1;
+            case PlaybackStateCompat.REPEAT_MODE_ONE:
+                //单曲循环
+                playback.seekTo(0);
                 break;
-            case SINGLE_CYCLE:
+            case PlaybackStateCompat.REPEAT_MODE_ALL:
+                //列表循环
+                queueManager.skipQueuePosition(1);
+                handlePlayRequest();
                 break;
-            case RANDOM:
-                //TODO 暂时未找到算法
+            case PlaybackStateCompat.REPEAT_MODE_GROUP:
+                //重新定义为随机播放
+                queueManager.skipQueuePosition(random.nextInt(queueManager.getQueueSize()));
+                handlePlayRequest();
                 break;
-        }
-
-        if(currentPosition >= 0) {
-            handlePlayRequest();
-            mediaSessionCompat.setMetadata(musicProvider.getMusicById(currentQueue.get(currentPosition).getMediaId()));
-        }else{
-            handleStopRequest(null);
         }
     }
 
@@ -224,7 +212,7 @@ public class PlaybackManager implements Playback.Callback {
 
         @Override
         public void onStop() {
-            super.onStop();
+            handleStopRequest("");
         }
 
         @Override
@@ -259,46 +247,11 @@ public class PlaybackManager implements Playback.Callback {
 
         @Override
         public void onPlayFromMediaId(String mediaId, Bundle extras) {
-            currentQueue.clear();
-            currentQueue.addAll(musicProvider.getChild(Contaces.SERVICE_ID_LOCALMUSIC));
-            for (int i = 0; i < currentQueue.size(); i++) {
-                if(TextUtils.equals(currentQueue.get(i).getMediaId(),mediaId)){
-                    currentPosition = i;
-                    break;
-                }
-            }
-            mediaSessionCompat.setMetadata(musicProvider.getMusicById(mediaId));
+            extras.setClassLoader(getClass().getClassLoader());
+            List<MediaDataInfo> list = extras.getParcelableArrayList("list");
+            String title = extras.getString("title");
+            queueManager.setCurrentQueue(list,title,mediaId);
             handlePlayRequest();
-        }
-
-        @Override
-        public void onPlayFromSearch(String query, Bundle extras) {
-            super.onPlayFromSearch(query, extras);
-        }
-
-        @Override
-        public void onPlayFromUri(Uri uri, Bundle extras) {
-            super.onPlayFromUri(uri, extras);
-        }
-
-        @Override
-        public void onPrepare() {
-            super.onPrepare();
-        }
-
-        @Override
-        public void onPrepareFromMediaId(String mediaId, Bundle extras) {
-            super.onPrepareFromMediaId(mediaId, extras);
-        }
-
-        @Override
-        public void onPrepareFromSearch(String query, Bundle extras) {
-            super.onPrepareFromSearch(query, extras);
-        }
-
-        @Override
-        public void onPrepareFromUri(Uri uri, Bundle extras) {
-            super.onPrepareFromUri(uri, extras);
         }
 
         @Override
@@ -312,13 +265,8 @@ public class PlaybackManager implements Playback.Callback {
         }
 
         @Override
-        public void onRewind() {
-            super.onRewind();
-        }
-
-        @Override
         public void onSeekTo(long pos) {
-            super.onSeekTo(pos);
+            playback.seekTo((int) pos);
         }
 
         @Override
@@ -332,27 +280,33 @@ public class PlaybackManager implements Playback.Callback {
         }
 
         @Override
-        public void onSetShuffleMode(int shuffleMode) {
-            super.onSetShuffleMode(shuffleMode);
-        }
-
-        @Override
         public void onSkipToNext() {
-            currentPosition = currentPosition == currentQueue.size()-1?0:currentPosition+1;
-            mediaSessionCompat.setMetadata(musicProvider.getMusicById(currentQueue.get(currentPosition).getMediaId()));
-            handlePlayRequest();
+            if (queueManager.skipQueuePosition(1)) {
+                handlePlayRequest();
+            } else {
+                handleStopRequest("Cannot skip");
+            }
+            queueManager.updateMetadata();
         }
 
         @Override
         public void onSkipToPrevious() {
-            currentPosition = currentPosition == 0?currentQueue.size()-1:currentPosition-1;
-            mediaSessionCompat.setMetadata(musicProvider.getMusicById(currentQueue.get(currentPosition).getMediaId()));
-            handlePlayRequest();
+            if (queueManager.skipQueuePosition(-1)) {
+                handlePlayRequest();
+            } else {
+                handleStopRequest("Cannot skip");
+            }
+            queueManager.updateMetadata();
         }
 
         @Override
         public void onSkipToQueueItem(long id) {
-            super.onSkipToQueueItem(id);
+            if (queueManager.setCurrentQueueItem(id)) {
+                handlePlayRequest();
+            } else {
+                handleStopRequest("Cannot skip");
+            }
+            queueManager.updateMetadata();
         }
     }
 

@@ -83,12 +83,11 @@
             android:layout_centerHorizontal="true"
             android:scaleType="fitCenter"
             android:src="@drawable/bg_circle_gray" />
-        <com.tmall.ultraviewpager.UltraViewPager
+        <android.support.v4.view.ViewPager
             android:id="@+id/viewpager"
             android:layout_width="match_parent"
             android:layout_height="263dp"
-            android:layout_marginTop="60dp"
-            android:visibility="gone"/>
+            android:layout_marginTop="60dp" />
         <ImageView
             android:id="@+id/needle"
             android:layout_width="wrap_content"

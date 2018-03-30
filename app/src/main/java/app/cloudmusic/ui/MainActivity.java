@@ -45,7 +45,9 @@ import java.util.List;
 import app.cloudmusic.BroswerAdapter;
 import app.cloudmusic.Contaces;
 import app.cloudmusic.R;
+import app.cloudmusic.data.MediaDataInfo;
 import app.cloudmusic.service.MusicService;
+import app.cloudmusic.utils.MediaUtils;
 import app.cloudmusic.utils.permission.PermissionsManager;
 import app.cloudmusic.utils.permission.PermissionsResultAction;
 import app.cloudmusic.widget.SnappyRecyclerView;
@@ -202,7 +204,15 @@ public class MainActivity extends BaseMediaActivity
 
     @Override
     public void onItemClick(RecyclerView.ViewHolder holder, int position) {
+        PlayFromMediaId(position);
+    }
+
+    private void PlayFromMediaId(int position){
         String mediaId = arraylist.get(position).getMediaId();
-        MediaControllerCompat.getMediaController(this).getTransportControls().playFromMediaId(mediaId,null);
+        Bundle bundle = new Bundle();
+        bundle.putString("title","本地歌曲");
+        List<MediaDataInfo> list = MediaUtils.tarsformToMediaDataInfo(arraylist);
+        bundle.putParcelableArrayList("list", (ArrayList<? extends Parcelable>) list);
+        MediaControllerCompat.getMediaController(this).getTransportControls().playFromMediaId(mediaId,bundle);
     }
 }

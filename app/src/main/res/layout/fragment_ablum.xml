@@ -4,12 +4,15 @@
     android:layout_height="match_parent"
     tools:context="app.cloudmusic.ui.AblumFragment">
 
+
     <app.cloudmusic.widget.CircleImageView
         android:id="@+id/imageView"
-        android:layout_width="263dp"
-        android:layout_height="263dp"
-        android:background="@mipmap/bg_playing_ablum"
+        android:padding="42.5dp"
+        android:layout_width="257dp"
+        android:layout_height="257dp"
+        android:layout_centerInParent="true"
         android:layout_centerHorizontal="true"
         android:src="@mipmap/image_default_alubm"
+        android:background="@mipmap/bg_play_disc"
         android:scaleType="center"/>
 </RelativeLayout>

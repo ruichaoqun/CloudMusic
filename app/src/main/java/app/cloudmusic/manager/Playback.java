@@ -75,7 +75,7 @@ public interface Playback {
      * @param item to play
      *             播放
      */
-    void play(MediaBrowserCompat.MediaItem item);
+    void play(MediaSessionCompat.QueueItem item);
 
     /**
      * Pause the current playing item

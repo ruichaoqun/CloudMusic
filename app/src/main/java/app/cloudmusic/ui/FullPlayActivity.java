@@ -7,6 +7,7 @@ import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
@@ -29,17 +30,14 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.tmall.ultraviewpager.UltraViewPager;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import app.cloudmusic.Contaces;
 import app.cloudmusic.R;
 import app.cloudmusic.service.MusicService;
 import app.cloudmusic.utils.MediaUtils;
@@ -50,7 +48,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener {
+public class FullPlayActivity extends AppCompatActivity{
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
 
@@ -103,7 +101,7 @@ public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnP
     @BindView(R.id.bg_gaosi)
     ImageView bgGaosi;
     @BindView(R.id.viewpager)
-    UltraViewPager viewpager;
+    ViewPager viewpager;
 
     private ImageLoader imageLoader;
     private MediaBrowserCompat browserServiceCompat;
@@ -151,28 +149,6 @@ public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnP
 
     }
 
-    private void initAblumFragment(List<MediaBrowserCompat.MediaItem> children) {
-        playList = children;
-        List<String> list = new ArrayList<>();
-        for (int i = 0; i < children.size(); i++) {
-            list.add(children.get(i).getDescription().getMediaUri().toString());
-        }
-        viewpager.setScrollMode(UltraViewPager.ScrollMode.HORIZONTAL);
-        UltraPagerAdapter adapter = new UltraPagerAdapter(this,list);
-        viewpager.setAdapter(adapter);
-        viewpager.initIndicator();
-        //设定页面循环播放
-        viewpager.setInfiniteLoop(true);
-        viewpager.setOnPageChangeListener(this);
-        String mediaUri = MediaControllerCompat.getMediaController(this).getMetadata().getDescription().getMediaUri().toString();
-//        for (int i = 0; i < list.size(); i++) {
-//            if(TextUtils.equals(list.get(i),mediaUri)){
-//                viewpager.setCurrentItem(i);
-//                break;
-//            }
-//        }
-        viewpager.setVisibility(View.VISIBLE);
-    }
 
     @Override
     protected void onStart() {
@@ -285,17 +261,17 @@ public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnP
         seekBar.setMax(duration);
         mediaTotalTime.setText(MediaUtils.makeTimeString(duration));
 
-
+        Drawable drawable = bgGaosi.getDrawable();
+        if(drawable == null)
+            drawable = ContextCompat.getDrawable(this, R.mipmap.login_bg_night);;
         Drawable result = RenderScriptUtil.rsBlur(this, metadata.getDescription().getMediaUri().toString(), 10);
         bgGaosi.setImageDrawable(result);
-        Drawable drawable = ContextCompat.getDrawable(this, R.mipmap.login_bg_night);
         final TransitionDrawable td =
                 new TransitionDrawable(new Drawable[]{drawable, result});
         bgGaosi.setImageDrawable(td);
         //去除过度绘制
         td.setCrossFadeEnabled(true);
-        td.startTransition(200);
-
+        td.startTransition(500);
     }
 
     private void scheduleSeekbarUpdate() {
@@ -344,22 +320,65 @@ public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnP
         mediaController.registerCallback(mMediaControllerCallback);
         onMetadataChanged(mediaController.getMetadata());
         onPlaybackStateChanged(mediaController.getPlaybackState());
-
-        browserServiceCompat.unsubscribe(Contaces.GET_PALYING_LIST);
-        browserServiceCompat.subscribe(Contaces.GET_PALYING_LIST,subscriptionCallback);
-        MediaControllerCompat.getMediaController(this).registerCallback(mMediaControllerCallback);
+        initFragment();
     }
+
+    private void initFragment() {
+        MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(this);
+        if(controllerCompat != null){
+            final List<MediaSessionCompat.QueueItem> list = controllerCompat.getQueue();
+            if(list != null){
+                AblumPagerAdapter adapter = new AblumPagerAdapter(getSupportFragmentManager(),list);
+                viewpager.setAdapter(adapter);
+                int index = MediaUtils.getMusicIndexOnQueue(list, getMediaController().getMetadata().getDescription().getMediaId());
+                viewpager.setCurrentItem(index+1,false);
+                viewpager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                    @Override
+                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+                    }
+
+                    @Override
+                    public void onPageSelected(int position) {
+                        ablumHandler.sendEmptyMessageDelayed(position,500);
+                    }
+
+                    @Override
+                    public void onPageScrollStateChanged(int state) {
+
+                    }
+                });
+            }
+        }
+    }
+
+    private Handler ablumHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            int position = msg.what;
+            int truePosition = position--;
+            final List<MediaSessionCompat.QueueItem> list = MediaControllerCompat.getMediaController(FullPlayActivity.this).getQueue();
+            if(position == 0){
+                truePosition = list.size() - 1;
+                viewpager.setCurrentItem(list.size(),false);
+            }
+            if(position == list.size() + 1){
+                truePosition = 0;
+                viewpager.setCurrentItem(0,false);
+            }
+            MediaControllerCompat.getMediaController(FullPlayActivity.this).getTransportControls().skipToQueueItem(list.get(truePosition).getQueueId());
+        }
+    };
 
     private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            Log.w("AAA", "onPlaybackStateChanged");
             FullPlayActivity.this.onPlaybackStateChanged(state);
         }
 
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
-            Log.w("AAA", "onMetadataChanged");
             FullPlayActivity.this.onMetadataChanged(metadata);
         }
 
@@ -387,52 +406,5 @@ public class FullPlayActivity extends AppCompatActivity implements ViewPager.OnP
         super.onDestroy();
         stopSeekbarUpdate();
         mExecutorService.shutdown();
-    }
-
-    private MediaBrowserCompat.SubscriptionCallback subscriptionCallback = new MediaBrowserCompat.SubscriptionCallback() {
-        @Override
-        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaBrowserCompat.MediaItem> children) {
-            initAblumFragment(children);
-        }
-
-        @Override
-        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaBrowserCompat.MediaItem> children, @NonNull Bundle options) {
-            super.onChildrenLoaded(parentId, children, options);
-        }
-
-        @Override
-        public void onError(@NonNull String parentId) {
-            super.onError(parentId);
-        }
-
-        @Override
-        public void onError(@NonNull String parentId, @NonNull Bundle options) {
-            super.onError(parentId, options);
-        }
-    };
-
-
-    @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
-    }
-
-    @Override
-    public void onPageSelected(int position) {
-        Log.w("BBB","onPageSelected");
-        int truePosition = position%playList.size();
-        String url = playList.get(truePosition).getDescription().getMediaId().toString();
-        MediaMetadataCompat mediaMetadataCompat = MediaControllerCompat.getMediaController(this).getMetadata();
-        if(mediaMetadataCompat != null){
-            if(!TextUtils.equals(mediaMetadataCompat.getDescription().getMediaUri().toString(),url)){
-                MediaControllerCompat.getMediaController(this).getTransportControls().playFromMediaId(url,null);
-                scheduleSeekbarUpdate();
-            }
-        }
-    }
-
-    @Override
-    public void onPageScrollStateChanged(int state) {
-
     }
 }

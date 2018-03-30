@@ -11,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -24,6 +25,7 @@ import app.cloudmusic.manager.LocalPlayback;
 import app.cloudmusic.manager.MusicProvider;
 import app.cloudmusic.manager.Playback;
 import app.cloudmusic.manager.PlaybackManager;
+import app.cloudmusic.manager.QueueManager;
 import app.cloudmusic.utils.LogHelper;
 
 import static app.cloudmusic.Contaces.SERVICE_ID_LOCALMUSIC;
@@ -56,6 +58,7 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
     private MediaSessionCompat mediaSessionCompat;
     private PlaybackManager  playbackManager;
     private final DelayedStopHandler mDelayedStopHandler = new DelayedStopHandler(this);
+    private QueueManager queueManager;
 
     @Override
     public void onCreate() {
@@ -64,7 +67,29 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
         musicProvider = new MusicProvider();
         musicProvider.retrieveMediaAsync(null);//获取本地所有音乐
         Playback playback = new LocalPlayback(this,musicProvider);
-        playbackManager = new PlaybackManager(this,musicProvider,playback);
+        queueManager = new QueueManager(musicProvider, getResources(), new QueueManager.MetaDataUpdateListener() {
+            @Override
+            public void onMetaDataChanged(MediaMetadataCompat metadata) {
+                mediaSessionCompat.setMetadata(metadata);
+            }
+
+            @Override
+            public void onError() {
+
+            }
+
+            @Override
+            public void onCurrentQueueIndexUpdated(int queueIndex) {
+
+            }
+
+            @Override
+            public void onQueueUpdated(String title, List<MediaSessionCompat.QueueItem> newQueue) {
+                mediaSessionCompat.setQueue(newQueue);
+                mediaSessionCompat.setQueueTitle(title);
+            }
+        });
+        playbackManager = new PlaybackManager(this,musicProvider,playback,queueManager);
         mediaSessionCompat = new MediaSessionCompat(this,"MusicService");
         setSessionToken(mediaSessionCompat.getSessionToken());
         mediaSessionCompat.setCallback(playbackManager.getMediaSessionCallback());

@@ -31,7 +31,7 @@ public class LocalMediaSource implements MusicProviderSource{
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.SIZE,
     };
-    private String where =  "mime_type in ('audio/mpeg','audio/x-ms-wma') and is_music > 0 " ;
+    private String where =  "mime_type in ('audio/mpeg','audio/x-ms-wma','audio/mp4') and is_music > 0 " ;
     private String sortOrder = MediaStore.Audio.Media.DATA;
 
     public LocalMediaSource(Context mContext) {
