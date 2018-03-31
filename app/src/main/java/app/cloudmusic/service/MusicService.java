@@ -27,6 +27,7 @@ import app.cloudmusic.manager.Playback;
 import app.cloudmusic.manager.PlaybackManager;
 import app.cloudmusic.manager.QueueManager;
 import app.cloudmusic.utils.LogHelper;
+import app.cloudmusic.utils.MediaSharePreference;
 
 import static app.cloudmusic.Contaces.SERVICE_ID_LOCALMUSIC;
 
@@ -67,7 +68,7 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
         musicProvider = new MusicProvider();
         musicProvider.retrieveMediaAsync(null);//获取本地所有音乐
         Playback playback = new LocalPlayback(this,musicProvider);
-        queueManager = new QueueManager(musicProvider, getResources(), new QueueManager.MetaDataUpdateListener() {
+        queueManager = new QueueManager(musicProvider, MediaSharePreference.getInstances().getRepeatMode(), new QueueManager.MetaDataUpdateListener() {
             @Override
             public void onMetaDataChanged(MediaMetadataCompat metadata) {
                 mediaSessionCompat.setMetadata(metadata);
@@ -91,11 +92,12 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
         });
         playbackManager = new PlaybackManager(this,musicProvider,playback,queueManager);
         mediaSessionCompat = new MediaSessionCompat(this,"MusicService");
-        setSessionToken(mediaSessionCompat.getSessionToken());
         mediaSessionCompat.setCallback(playbackManager.getMediaSessionCallback());
         mediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
                 MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
         playbackManager.setMediaSessionCompat(mediaSessionCompat);
+        mediaSessionCompat.setRepeatMode(MediaSharePreference.getInstances().getRepeatMode());
+        setSessionToken(mediaSessionCompat.getSessionToken());
     }
 
     @Override
@@ -194,6 +196,12 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
     public void onPlaybackStateUpdated(PlaybackStateCompat newState) {
         mediaSessionCompat.setPlaybackState(newState);
     }
+
+    @Override
+    public void onRepeatUpdated(int repeatMode) {
+        mediaSessionCompat.setRepeatMode(repeatMode);
+    }
+
 
     /**
      * A simple handler that stops the service if playback is not active (playing)

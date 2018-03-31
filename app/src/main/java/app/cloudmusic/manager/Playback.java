@@ -55,7 +55,7 @@ public interface Playback {
      * @return pos if currently playing an item
      * 获取当前播放位置
      */
-    int getCurrentStreamPosition();
+    long getCurrentStreamPosition();
 
     /**
      * Set the current position. Typically used when switching players that are in
@@ -87,7 +87,7 @@ public interface Playback {
      * Seek to the given position
      * 位移
      */
-    void seekTo(int position);
+    void seekTo(long position);
 
     /**
      * Set the current mediaId. This is only used when switching from one
@@ -97,6 +97,12 @@ public interface Playback {
      * @param mediaId to be set as the current.
      */
     void setCurrentMediaId(String mediaId);
+
+    /**
+     * 设置是否循环播放
+     * @param repeatMode
+     */
+    void setRepeatMode(int repeatMode);
 
     /**
      *

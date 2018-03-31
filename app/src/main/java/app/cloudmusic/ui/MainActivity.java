@@ -1,44 +1,27 @@
 package app.cloudmusic.ui;
 
 import android.Manifest;
-import android.content.ComponentName;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.os.RemoteException;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresPermission;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.EditText;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,11 +29,7 @@ import app.cloudmusic.BroswerAdapter;
 import app.cloudmusic.Contaces;
 import app.cloudmusic.R;
 import app.cloudmusic.data.MediaDataInfo;
-import app.cloudmusic.service.MusicService;
 import app.cloudmusic.utils.MediaUtils;
-import app.cloudmusic.utils.permission.PermissionsManager;
-import app.cloudmusic.utils.permission.PermissionsResultAction;
-import app.cloudmusic.widget.SnappyRecyclerView;
 
 public class MainActivity extends BaseMediaActivity
         implements NavigationView.OnNavigationItemSelectedListener, BroswerAdapter.OnItemClickListener {

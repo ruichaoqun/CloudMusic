@@ -21,10 +21,10 @@ public class AblumPagerAdapter extends FragmentPagerAdapter{
     @Override
     public Fragment getItem(int position) {
         if(position == 0 ){
-            return  AblumFragment.newInstance(list.get(0).getDescription().getMediaUri().toString());
+            return  AblumFragment.newInstance(list.get(list.size() - 1).getDescription().getMediaUri().toString());
         }
         if(position == list.size()+ 1){
-            return  AblumFragment.newInstance(list.get(list.size() - 1).getDescription().getMediaUri().toString());
+            return  AblumFragment.newInstance(list.get(0).getDescription().getMediaUri().toString());
         }
         return AblumFragment.newInstance(list.get(position - 1).getDescription().getMediaUri().toString());
     }

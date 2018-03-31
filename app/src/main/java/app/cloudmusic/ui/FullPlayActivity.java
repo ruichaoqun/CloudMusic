@@ -32,6 +32,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 
 import app.cloudmusic.R;
 import app.cloudmusic.service.MusicService;
+import app.cloudmusic.utils.MediaSharePreference;
 import app.cloudmusic.utils.MediaUtils;
 import app.cloudmusic.utils.RenderScriptUtil;
 import app.cloudmusic.utils.UIUtils;
@@ -48,7 +51,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class FullPlayActivity extends AppCompatActivity{
+public class FullPlayActivity extends BaseMediaBrowserActivity{
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;
     private static final long PROGRESS_UPDATE_INITIAL_INTERVAL = 100;
 
@@ -104,14 +107,14 @@ public class FullPlayActivity extends AppCompatActivity{
     ViewPager viewpager;
 
     private ImageLoader imageLoader;
-    private MediaBrowserCompat browserServiceCompat;
 
     private final ScheduledExecutorService mExecutorService =
             Executors.newSingleThreadScheduledExecutor();
     private final Handler mHandler = new Handler();
     private ScheduledFuture<?> mScheduleFuture;
     private PlaybackStateCompat mLastPlaybackState;
-    private List<MediaBrowserCompat.MediaItem> playList;
+    private int repeatMode = MediaSharePreference.getInstances().getRepeatMode();
+    private AblumPagerAdapter ablumPagerAdapter;
 
     private final Runnable mUpdateProgressTask = new Runnable() {
         @Override
@@ -144,21 +147,10 @@ public class FullPlayActivity extends AppCompatActivity{
         navigationView.setLayoutParams(params);
         imageLoader = new ImageLoader(this);
         title.setSelected(true);
-        browserServiceCompat = new MediaBrowserCompat(this,
-                new ComponentName(this, MusicService.class), mConnectionCallback, null);
-
-    }
-
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        browserServiceCompat.connect();
     }
 
     @OnClick({R.id.back_icon, R.id.share, R.id.playing_fav, R.id.playing_down, R.id.playing_cmt, R.id.playing_more, R.id.playing_mode, R.id.playing_pre, R.id.playing_play, R.id.playing_next, R.id.playing_playlist})
     public void onViewClicked(View view) {
-        MediaControllerCompat controller = MediaControllerCompat.getMediaController(this);
         if (controller == null) {
             browserServiceCompat.connect();
             return;
@@ -183,28 +175,27 @@ public class FullPlayActivity extends AppCompatActivity{
             case R.id.playing_more:
                 //更多
                 break;
-            case R.id.playing_mode:  //播放模式
+            case R.id.playing_mode://播放模式
+                int repeatMode = controller.getRepeatMode();
+                int newRepeatMode = repeatMode%3 + 1;//新的播放模式
+                controller.getTransportControls().setRepeatMode(newRepeatMode);//申请更新播放模式
                 break;
             case R.id.playing_pre://上一首
                 if (state != null) {
-                    MediaControllerCompat.TransportControls controls =
-                            controller.getTransportControls();
-                    controls.skipToPrevious();
+                    controller.getTransportControls().skipToPrevious();
                 }
                 break;
             case R.id.playing_play://播放 暂停
                 if (state != null) {
-                    MediaControllerCompat.TransportControls controls =
-                            controller.getTransportControls();
                     switch (state.getState()) {
                         case PlaybackStateCompat.STATE_PLAYING:
                         case PlaybackStateCompat.STATE_BUFFERING:
-                            controls.pause();
+                            controller.getTransportControls().pause();
                             stopSeekbarUpdate();
                             break;
                         case PlaybackStateCompat.STATE_PAUSED:
                         case PlaybackStateCompat.STATE_STOPPED:
-                            controls.play();
+                            controller.getTransportControls().play();
                             scheduleSeekbarUpdate();
                             break;
                         default:
@@ -214,9 +205,7 @@ public class FullPlayActivity extends AppCompatActivity{
                 break;
             case R.id.playing_next: //下一首
                 if (state != null) {
-                    MediaControllerCompat.TransportControls controls =
-                            controller.getTransportControls();
-                    controls.skipToNext();
+                    controller.getTransportControls().skipToNext();
                 }
                 break;
             case R.id.playing_playlist: //播放列表
@@ -226,7 +215,7 @@ public class FullPlayActivity extends AppCompatActivity{
     }
 
     //当前播放状态改变时
-    private void onPlaybackStateChanged(PlaybackStateCompat playbackState) {
+    protected void onPlaybackStateChanged(PlaybackStateCompat playbackState) {
         if (playbackState == null) {
             return;
         }
@@ -252,7 +241,7 @@ public class FullPlayActivity extends AppCompatActivity{
     }
 
     //当前播放歌曲改变时
-    private void onMetadataChanged(MediaMetadataCompat metadata) {
+    protected void onMetadataChanged(MediaMetadataCompat metadata) {
         if (metadata == null)
             return;
         title.setText(metadata.getDescription().getTitle());
@@ -272,6 +261,15 @@ public class FullPlayActivity extends AppCompatActivity{
         //去除过度绘制
         td.setCrossFadeEnabled(true);
         td.startTransition(500);
+    }
+
+    @Override
+    protected void connectSuccess() {
+        initFragment();
+        if(controller != null){
+            //设置播放模式
+            setRepeatMode(controller.getRepeatMode());
+        }
     }
 
     private void scheduleSeekbarUpdate() {
@@ -312,25 +310,13 @@ public class FullPlayActivity extends AppCompatActivity{
         mediaPlayTime.setText(MediaUtils.makeTimeString(currentPosition));
     }
 
-    //连接媒体会话
-    private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {
-        MediaControllerCompat mediaController = new MediaControllerCompat(this, token);
-        MediaControllerCompat.setMediaController(this, mediaController);
-        //媒体控制器注册回调
-        mediaController.registerCallback(mMediaControllerCallback);
-        onMetadataChanged(mediaController.getMetadata());
-        onPlaybackStateChanged(mediaController.getPlaybackState());
-        initFragment();
-    }
-
     private void initFragment() {
-        MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(this);
-        if(controllerCompat != null){
-            final List<MediaSessionCompat.QueueItem> list = controllerCompat.getQueue();
-            if(list != null){
-                AblumPagerAdapter adapter = new AblumPagerAdapter(getSupportFragmentManager(),list);
-                viewpager.setAdapter(adapter);
-                int index = MediaUtils.getMusicIndexOnQueue(list, getMediaController().getMetadata().getDescription().getMediaId());
+        if(controller != null){
+            List<MediaSessionCompat.QueueItem> queue = controller.getQueue();
+            if(queue != null){
+                ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queue);
+                viewpager.setAdapter(ablumPagerAdapter);
+                int index = MediaUtils.getMusicIndexOnQueue(queue, controller.getMetadata().getDescription().getMediaId());
                 viewpager.setCurrentItem(index+1,false);
                 viewpager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
                     @Override
@@ -352,54 +338,59 @@ public class FullPlayActivity extends AppCompatActivity{
         }
     }
 
+    @Override
+    public void onRepeatModeChanged(int repeatMode) {
+        setRepeatMode(repeatMode);
+    }
+
+    @Override
+    public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
+        int index = MediaUtils.getMusicIndexOnQueue(queue, controller.getMetadata().getDescription().getMediaId());
+        ablumPagerAdapter.notifyDataSetChanged();
+        viewpager.setCurrentItem(index+1,false);
+    }
+
+    @Override
+    public void onQueueTitleChanged(CharSequence title) {
+        super.onQueueTitleChanged(title);
+    }
+
+    /**
+     * 更新播放模式
+     */
+    private void setRepeatMode(int repeatMode) {
+        switch (repeatMode){
+            case PlaybackStateCompat.REPEAT_MODE_ONE://单曲模式
+                playingMode.setImageResource(R.mipmap.icon_playmode_single);
+                break;
+            case PlaybackStateCompat.REPEAT_MODE_ALL://循环播放模式
+                playingMode.setImageResource(R.mipmap.icon_playmode_cycle);
+                break;
+            case PlaybackStateCompat.REPEAT_MODE_GROUP://随机播放模式
+                playingMode.setImageResource(R.mipmap.icon_playmode_shuffle);
+                break;
+        }
+    }
+
     private Handler ablumHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             int position = msg.what;
-            int truePosition = position--;
-            final List<MediaSessionCompat.QueueItem> list = MediaControllerCompat.getMediaController(FullPlayActivity.this).getQueue();
+            int truePosition = position-1;
+            final List<MediaSessionCompat.QueueItem> list = controller.getQueue();
             if(position == 0){
                 truePosition = list.size() - 1;
                 viewpager.setCurrentItem(list.size(),false);
             }
             if(position == list.size() + 1){
                 truePosition = 0;
-                viewpager.setCurrentItem(0,false);
+                viewpager.setCurrentItem(1,false);
             }
-            MediaControllerCompat.getMediaController(FullPlayActivity.this).getTransportControls().skipToQueueItem(list.get(truePosition).getQueueId());
+            controller.getTransportControls().skipToQueueItem(list.get(truePosition).getQueueId());
         }
     };
 
-    private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
-        @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            FullPlayActivity.this.onPlaybackStateChanged(state);
-        }
-
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
-            FullPlayActivity.this.onMetadataChanged(metadata);
-        }
-
-        @Override
-        public void onRepeatModeChanged(int repeatMode) {
-            super.onRepeatModeChanged(repeatMode);
-        }
-    };
-
-    //MediaBrowserCompat链接成功后调用该回调
-    private final MediaBrowserCompat.ConnectionCallback mConnectionCallback =
-            new MediaBrowserCompat.ConnectionCallback() {
-                @Override
-                public void onConnected() {
-                    try {
-                        connectToSession(browserServiceCompat.getSessionToken());
-                    } catch (RemoteException e) {
-                        finish();
-                    }
-                }
-            };
 
     @Override
     public void onDestroy() {

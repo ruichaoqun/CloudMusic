@@ -4,9 +4,12 @@ import android.content.res.Resources;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import app.cloudmusic.data.MediaDataInfo;
@@ -17,18 +20,19 @@ import app.cloudmusic.utils.MediaUtils;
  */
 
 public class QueueManager {
+    private List<MediaSessionCompat.QueueItem> originalQueue;
     private List<MediaSessionCompat.QueueItem> mPlayingQueue;
     private int mCurrentIndex;
 
     private MusicProvider musicProvider;
-    private Resources resource;
     private MetaDataUpdateListener listener;
     private String title;
+    private int repeatMode;
 
-    public QueueManager(MusicProvider musicProvider, Resources resource, MetaDataUpdateListener listener) {
+    public QueueManager(MusicProvider musicProvider, int repeatMode, MetaDataUpdateListener listener) {
         this.musicProvider = musicProvider;
-        this.resource = resource;
         this.listener = listener;
+        this.repeatMode = repeatMode;
     }
 
 
@@ -60,7 +64,14 @@ public class QueueManager {
         }
 
         if(!canReuseQueue){
-            mPlayingQueue = MediaUtils.transformTogetQueue(list);
+            originalQueue = MediaUtils.transformTogetQueue(list);
+            mPlayingQueue = new ArrayList<>();
+            for (int i = 0; i < originalQueue.size(); i++) {
+                mPlayingQueue.add(originalQueue.get(i));
+            }
+            if(repeatMode == PlaybackStateCompat.REPEAT_MODE_GROUP){
+                Collections.shuffle(mPlayingQueue);
+            }
             this.title = title;
             int index = 0;
             if(mediaId != null){
@@ -82,7 +93,7 @@ public class QueueManager {
     public boolean setCurrentQueueItem(long queueId){
         int index = MediaUtils.getMusicIndexOnQueue(mPlayingQueue,queueId);
         setCurrentQueueIndex(index);
-        return index > 0;
+        return index >= 0;
     }
 
     public MediaSessionCompat.QueueItem getCurrentMusic() {
@@ -90,6 +101,24 @@ public class QueueManager {
             return mPlayingQueue.get(mCurrentIndex);
         }
         return null;
+    }
+
+    public void setRepeatMode(int repeatMode){
+        this.repeatMode = repeatMode;
+        if(mPlayingQueue != null && mPlayingQueue.size() > 0){
+            String mediaId = mPlayingQueue.get(mCurrentIndex).getDescription().getMediaId();
+            if(repeatMode == PlaybackStateCompat.REPEAT_MODE_GROUP){
+                Collections.shuffle(mPlayingQueue);
+                mCurrentIndex = MediaUtils.getMusicIndexOnQueue(mPlayingQueue,mediaId);
+            }else{
+                mPlayingQueue.clear();
+                for (int i = 0; i < originalQueue.size(); i++) {
+                    mPlayingQueue.add(originalQueue.get(i));
+                }
+                mCurrentIndex = MediaUtils.getMusicIndexOnQueue(mPlayingQueue,mediaId);
+            }
+        }
+        listener.onQueueUpdated(title,mPlayingQueue);
     }
 
     public boolean isLastMusic() {

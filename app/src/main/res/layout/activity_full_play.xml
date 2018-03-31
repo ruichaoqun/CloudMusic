@@ -195,10 +195,12 @@
             <ImageView
                 android:id="@+id/playing_mode"
                 android:layout_width="0dp"
-                android:layout_height="3dp"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:layout_weight="1"
-                android:src="@mipmap/play_icn_loop_prs" />
+                android:background="?selectableItemBackgroundBorderless"
+                android:src="@mipmap/icon_playmode_cycle"
+                android:padding="10dp" />
 
             <ImageView
                 android:id="@+id/playing_pre"

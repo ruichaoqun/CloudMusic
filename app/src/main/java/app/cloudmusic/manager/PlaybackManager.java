@@ -14,6 +14,8 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.android.exoplayer2.Player;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -94,21 +96,8 @@ public class PlaybackManager implements Playback.Callback {
     @Override
     public void onCompletion() {
         switch (repeatMode){
-            case PlaybackStateCompat.REPEAT_MODE_INVALID:
-                //无效
-                break;
-            case PlaybackStateCompat.REPEAT_MODE_NONE:
-                //播放完当前歌曲列表所有歌曲即停止播放
-                if(!queueManager.isLastMusic()){
-                    queueManager.skipQueuePosition(1);
-                    handlePlayRequest();
-                }else{
-                    handleStopRequest("");
-                }
-                break;
             case PlaybackStateCompat.REPEAT_MODE_ONE:
                 //单曲循环
-                playback.seekTo(0);
                 break;
             case PlaybackStateCompat.REPEAT_MODE_ALL:
                 //列表循环
@@ -274,9 +263,30 @@ public class PlaybackManager implements Playback.Callback {
             super.onSetRating(rating);
         }
 
+        /**
+         * 设置新的播放模式
+         * @param repeatMode
+         */
         @Override
         public void onSetRepeatMode(int repeatMode) {
-            super.onSetRepeatMode(repeatMode);
+            switch (repeatMode){
+                case PlaybackStateCompat.REPEAT_MODE_ONE://单一模式
+                    playback.setRepeatMode(Player.REPEAT_MODE_ONE);
+                    break;
+                case PlaybackStateCompat.REPEAT_MODE_ALL://循环模式
+                    playback.setRepeatMode(Player.REPEAT_MODE_ALL);
+                    break;
+                case PlaybackStateCompat.REPEAT_MODE_GROUP://随机模式
+                    playback.setRepeatMode(Player.REPEAT_MODE_ALL);
+                    break;
+            }
+            queueManager.setRepeatMode(repeatMode);
+            serviceCallback.onRepeatUpdated(repeatMode);
+        }
+
+        @Override
+        public void onSetShuffleMode(int shuffleMode) {
+            super.onSetShuffleMode(shuffleMode);
         }
 
         @Override
@@ -318,5 +328,7 @@ public class PlaybackManager implements Playback.Callback {
         void onPlaybackStop();
 
         void onPlaybackStateUpdated(PlaybackStateCompat newState);
+
+        void onRepeatUpdated(int repeatMode);
     }
 }
