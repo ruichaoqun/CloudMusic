@@ -122,6 +122,7 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
             updateProgress();
         }
     };
+    private List<MediaSessionCompat.QueueItem> queueItemList;
 
 
 
@@ -312,9 +313,13 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
 
     private void initFragment() {
         if(controller != null){
+            queueItemList = new ArrayList<>();
             List<MediaSessionCompat.QueueItem> queue = controller.getQueue();
+            for (int i = 0; i < queue.size(); i++) {
+                queueItemList.add(queue.get(i));
+            }
             if(queue != null){
-                ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queue);
+                ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queueItemList);
                 viewpager.setAdapter(ablumPagerAdapter);
                 int index = MediaUtils.getMusicIndexOnQueue(queue, controller.getMetadata().getDescription().getMediaId());
                 viewpager.setCurrentItem(index+1,false);
@@ -345,9 +350,18 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
 
     @Override
     public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
-        int index = MediaUtils.getMusicIndexOnQueue(queue, controller.getMetadata().getDescription().getMediaId());
+        List<MediaSessionCompat.QueueItem> queu1 = controller.getQueue();
+        String id = controller.getMetadata().getDescription().getMediaId();
+        int index = MediaUtils.getMusicIndexOnQueue(queue, id);
+        queueItemList.clear();
+        for (int i = 0; i < queue.size(); i++) {
+            queueItemList.add(queue.get(i));
+        }
         ablumPagerAdapter.notifyDataSetChanged();
         viewpager.setCurrentItem(index+1,false);
+//        ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queue);
+//        viewpager.setAdapter(ablumPagerAdapter);
+//
     }
 
     @Override
