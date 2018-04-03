@@ -223,7 +223,6 @@ public class LocalPlayback implements Playback {
                         ExoPlayerFactory.newSimpleInstance(
                                 mContext, new DefaultTrackSelector(), new DefaultLoadControl());
                 mExoPlayer.addListener(mEventListener);
-                mExoPlayer.setRepeatMode(repeatMode);
             }
 
             // Android "O" makes much greater use of AudioAttributes, especially

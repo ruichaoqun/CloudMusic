@@ -200,6 +200,7 @@ public class MusicService extends MediaBrowserServiceCompat implements PlaybackM
     @Override
     public void onRepeatUpdated(int repeatMode) {
         mediaSessionCompat.setRepeatMode(repeatMode);
+        MediaSharePreference.getInstances().setRepeatMode(repeatMode);
     }
 
 

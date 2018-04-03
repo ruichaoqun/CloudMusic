@@ -24,6 +24,7 @@ import java.util.Random;
 import app.cloudmusic.Contaces;
 import app.cloudmusic.data.MediaDataInfo;
 import app.cloudmusic.utils.LogHelper;
+import app.cloudmusic.utils.MediaSharePreference;
 
 
 /**
@@ -39,7 +40,7 @@ public class PlaybackManager implements Playback.Callback {
     private Playback playback;
     private PlaybackServiceCallback serviceCallback;
     private QueueManager queueManager;
-    private int repeatMode = PlaybackStateCompat.SHUFFLE_MODE_INVALID;
+    private int repeatMode = MediaSharePreference.getInstances().getRepeatMode();
     private  Random random = new Random();
 
     public PlaybackManager(PlaybackServiceCallback serviceCallback,MusicProvider musicProvider,Playback playback,QueueManager queueManager) {
@@ -98,16 +99,15 @@ public class PlaybackManager implements Playback.Callback {
         switch (repeatMode){
             case PlaybackStateCompat.REPEAT_MODE_ONE:
                 //单曲循环
+                mMediaSessionCallback.onSeekTo(0);
                 break;
             case PlaybackStateCompat.REPEAT_MODE_ALL:
                 //列表循环
-                queueManager.skipQueuePosition(1);
-                handlePlayRequest();
+                mMediaSessionCallback.onSkipToNext();
                 break;
             case PlaybackStateCompat.REPEAT_MODE_GROUP:
                 //重新定义为随机播放
-                queueManager.skipQueuePosition(random.nextInt(queueManager.getQueueSize()));
-                handlePlayRequest();
+                mMediaSessionCallback.onSkipToNext();
                 break;
         }
     }
@@ -269,17 +269,7 @@ public class PlaybackManager implements Playback.Callback {
          */
         @Override
         public void onSetRepeatMode(int repeatMode) {
-            switch (repeatMode){
-                case PlaybackStateCompat.REPEAT_MODE_ONE://单一模式
-                    playback.setRepeatMode(Player.REPEAT_MODE_ONE);
-                    break;
-                case PlaybackStateCompat.REPEAT_MODE_ALL://循环模式
-                    playback.setRepeatMode(Player.REPEAT_MODE_ALL);
-                    break;
-                case PlaybackStateCompat.REPEAT_MODE_GROUP://随机模式
-                    playback.setRepeatMode(Player.REPEAT_MODE_ALL);
-                    break;
-            }
+            PlaybackManager.this.repeatMode = repeatMode;
             queueManager.setRepeatMode(repeatMode);
             serviceCallback.onRepeatUpdated(repeatMode);
         }

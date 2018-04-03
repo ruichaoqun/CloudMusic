@@ -21,10 +21,12 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -32,6 +34,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,8 +47,11 @@ import app.cloudmusic.R;
 import app.cloudmusic.service.MusicService;
 import app.cloudmusic.utils.MediaSharePreference;
 import app.cloudmusic.utils.MediaUtils;
+import app.cloudmusic.utils.MyScroller;
 import app.cloudmusic.utils.RenderScriptUtil;
 import app.cloudmusic.utils.UIUtils;
+import app.cloudmusic.utils.broadnotify.BroadNotifyUtils;
+import app.cloudmusic.utils.broadnotify.NotifyContaces;
 import app.cloudmusic.utils.imageloader.ImageLoader;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -123,6 +129,7 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
         }
     };
     private List<MediaSessionCompat.QueueItem> queueItemList;
+    private int pageScrollState = 0;
 
 
 
@@ -148,6 +155,24 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
         navigationView.setLayoutParams(params);
         imageLoader = new ImageLoader(this);
         title.setSelected(true);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mediaPlayTime.setText(DateUtils.formatElapsedTime(progress / 1000));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                stopSeekbarUpdate();
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                MediaControllerCompat.getMediaController(FullPlayActivity.this).getTransportControls().seekTo(seekBar.getProgress());
+                scheduleSeekbarUpdate();
+            }
+        });
     }
 
     @OnClick({R.id.back_icon, R.id.share, R.id.playing_fav, R.id.playing_down, R.id.playing_cmt, R.id.playing_more, R.id.playing_mode, R.id.playing_pre, R.id.playing_play, R.id.playing_next, R.id.playing_playlist})
@@ -224,6 +249,11 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
         switch (playbackState.getState()) {
             case PlaybackStateCompat.STATE_PLAYING:
                 playingPlay.setImageResource(R.mipmap.play_rdi_btn_pause);
+                String mediaUri = controller.getMetadata().getDescription().getMediaUri().toString();
+                Bundle bundle = new Bundle();
+                bundle.putString("mediaUri",mediaUri);
+                bundle.putBoolean("isRunning",true);
+                BroadNotifyUtils.sendReceiver(NotifyContaces.UPDATE_ABLUM_ANIMATOR,bundle);
                 scheduleSeekbarUpdate();
                 break;
             case PlaybackStateCompat.STATE_BUFFERING:
@@ -231,6 +261,11 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
                 break;
             case PlaybackStateCompat.STATE_PAUSED:
                 playingPlay.setImageResource(R.mipmap.play_rdi_btn_play);
+                String mediaUri1 = controller.getMetadata().getDescription().getMediaUri().toString();
+                Bundle bundle1 = new Bundle();
+                bundle1.putString("mediaUri",mediaUri1);
+                bundle1.putBoolean("isRunning",false);
+                BroadNotifyUtils.sendReceiver(NotifyContaces.UPDATE_ABLUM_ANIMATOR,bundle1);
                 break;
             case PlaybackStateCompat.STATE_STOPPED:
                 playingPlay.setImageResource(R.mipmap.play_rdi_btn_play);
@@ -262,6 +297,10 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
         //去除过度绘制
         td.setCrossFadeEnabled(true);
         td.startTransition(500);
+
+        String id = metadata.getDescription().getMediaId();
+        int index = MediaUtils.getMusicIndexOnQueue(controller.getQueue(),id);
+        viewpager.setCurrentItem(index+1);
     }
 
     @Override
@@ -307,8 +346,8 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
                     mLastPlaybackState.getLastPositionUpdateTime();
             currentPosition += (int) timeDelta * mLastPlaybackState.getPlaybackSpeed();
         }
-        seekBar.setProgress((int) currentPosition);
-        mediaPlayTime.setText(MediaUtils.makeTimeString(currentPosition));
+        seekBar.setProgress((int) currentPosition%seekBar.getMax());
+        mediaPlayTime.setText(MediaUtils.makeTimeString((int) currentPosition%seekBar.getMax()));
     }
 
     private void initFragment() {
@@ -322,23 +361,69 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
                 ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queueItemList);
                 viewpager.setAdapter(ablumPagerAdapter);
                 int index = MediaUtils.getMusicIndexOnQueue(queue, controller.getMetadata().getDescription().getMediaId());
+                ablumPagerAdapter.setCurrentItem(index+1);
                 viewpager.setCurrentItem(index+1,false);
-                viewpager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-                    @Override
-                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
-                    }
-
-                    @Override
-                    public void onPageSelected(int position) {
-                        ablumHandler.sendEmptyMessageDelayed(position,500);
-                    }
-
+                viewpager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener(){
                     @Override
                     public void onPageScrollStateChanged(int state) {
+                        super.onPageScrollStateChanged(state);
+                        pageScrollState = state;
+                        if(state == ViewPager.SCROLL_STATE_IDLE){
+                            if(controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING){
+                                String mediaUri = controller.getMetadata().getDescription().getMediaUri().toString();
+                                Bundle bundle = new Bundle();
+                                bundle.putString("mediaUri",mediaUri);
+                                bundle.putBoolean("isRunning",true);
+                                BroadNotifyUtils.sendReceiver(NotifyContaces.UPDATE_ABLUM_ANIMATOR,bundle);
+                            }
 
+                            int position = viewpager.getCurrentItem();
+                            ablumPagerAdapter.setCurrentItem(position);
+                            int truePosition = position-1;
+                            final List<MediaSessionCompat.QueueItem> list = controller.getQueue();
+                            if(position == 0){
+                                truePosition = list.size() - 1;
+                                ablumPagerAdapter.setCurrentItem(list.size());
+                                viewpager.setCurrentItem(list.size(),false);
+                            }
+                            if(position == list.size() + 1){
+                                truePosition = 0;
+                                ablumPagerAdapter.setCurrentItem(1);
+                                viewpager.setCurrentItem(1,false);
+                            }
+                            controller.getTransportControls().skipToQueueItem(list.get(truePosition).getQueueId());
+
+                        }else{
+                            String mediaUri = controller.getMetadata().getDescription().getMediaUri().toString();
+                            Bundle bundle = new Bundle();
+                            bundle.putString("mediaUri",mediaUri);
+                            bundle.putBoolean("isRunning",false);
+                            BroadNotifyUtils.sendReceiver(NotifyContaces.UPDATE_ABLUM_ANIMATOR,bundle);
+                        }
                     }
                 });
+
+
+                if(controller.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING){
+                    String mediaUri = controller.getMetadata().getDescription().getMediaUri().toString();
+                    Bundle bundle = new Bundle();
+                    bundle.putString("mediaUri",mediaUri);
+                    bundle.putBoolean("isRunning",true);
+                    BroadNotifyUtils.sendReceiver(NotifyContaces.UPDATE_ABLUM_ANIMATOR,bundle);
+                }
+                // 改变viewpager动画时间
+                try {
+                    Field mField = ViewPager.class.getDeclaredField("mScroller");
+                    mField.setAccessible(true);
+                    MyScroller mScroller = new MyScroller(viewpager.getContext().getApplicationContext(), new LinearInterpolator());
+                    mField.set(viewpager, mScroller);
+                } catch (NoSuchFieldException e) {
+                    e.printStackTrace();
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -357,7 +442,7 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
         for (int i = 0; i < queue.size(); i++) {
             queueItemList.add(queue.get(i));
         }
-        ablumPagerAdapter.notifyDataSetChanged();
+        ablumPagerAdapter.setCurrentItem(index+1);
         viewpager.setCurrentItem(index+1,false);
 //        ablumPagerAdapter = new AblumPagerAdapter(getSupportFragmentManager(),queue);
 //        viewpager.setAdapter(ablumPagerAdapter);
@@ -385,25 +470,6 @@ public class FullPlayActivity extends BaseMediaBrowserActivity{
                 break;
         }
     }
-
-    private Handler ablumHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            int position = msg.what;
-            int truePosition = position-1;
-            final List<MediaSessionCompat.QueueItem> list = controller.getQueue();
-            if(position == 0){
-                truePosition = list.size() - 1;
-                viewpager.setCurrentItem(list.size(),false);
-            }
-            if(position == list.size() + 1){
-                truePosition = 0;
-                viewpager.setCurrentItem(1,false);
-            }
-            controller.getTransportControls().skipToQueueItem(list.get(truePosition).getQueueId());
-        }
-    };
 
 
     @Override

@@ -29,7 +29,7 @@ public class AblumPagerAdapter extends PagerAdapter {
     private final FragmentManager mFragmentManager;
     private FragmentTransaction mCurTransaction = null;
     private Fragment mCurrentPrimaryItem = null;
-    private int mCurrentPosition;
+    private int currentItem = 0;
 
     public AblumPagerAdapter(FragmentManager fm,List<MediaSessionCompat.QueueItem> list1) {
         mFragmentManager = fm;
@@ -48,7 +48,6 @@ public class AblumPagerAdapter extends PagerAdapter {
     @SuppressWarnings("ReferenceEquality")
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        Log.w("SSS","instantiateItem-->"+position);
         if (mCurTransaction == null) {
             mCurTransaction = mFragmentManager.beginTransaction();
         }
@@ -77,21 +76,41 @@ public class AblumPagerAdapter extends PagerAdapter {
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
-        Log.w("SSS","destroyItem-->"+position);
         if (mCurTransaction == null) {
             mCurTransaction = mFragmentManager.beginTransaction();
         }
         if (DEBUG) Log.v(TAG, "Detaching item #" + getItemId(position) + ": f=" + object
                 + " v=" + ((Fragment)object).getView());
-        int size = mFragmentManager.getFragments().size();
-        //if(size > 6)
-            mCurTransaction.detach((Fragment)object);
-//        else{
-//            if((Fragment)object != mCurrentPrimaryItem){
-//                ((Fragment)object).setMenuVisibility(false);
-//                ((Fragment)object).setUserVisibleHint(false);
-//            }
-//        }
+        boolean needDestory = true;
+        if(currentItem - 1 >= 0 && currentItem - 1 < list.size() - 1){
+            long id = list.get(currentItem - 1).getQueueId();
+            String name = makeFragmentName(container.getId(), id);
+            Fragment fragment = mFragmentManager.findFragmentByTag(name);
+            if(fragment == object){
+                needDestory = false;
+            }
+        }
+
+        if(currentItem - 2 >= 0 && currentItem - 2 < list.size() - 1 ){
+            long id = list.get(currentItem - 2).getQueueId();
+            String name = makeFragmentName(container.getId(), id);
+            Fragment fragment = mFragmentManager.findFragmentByTag(name);
+            if(fragment == object){
+                needDestory = false;
+            }
+        }
+
+        if(currentItem >= 0 && currentItem < list.size() - 1 ){
+            long id = list.get(currentItem).getQueueId();
+            String name = makeFragmentName(container.getId(), id);
+            Fragment fragment = mFragmentManager.findFragmentByTag(name);
+            if(fragment == object){
+                needDestory = false;
+            }
+        }
+        if(needDestory)
+            mCurTransaction.detach((Fragment) object);
+
     }
 
     @SuppressWarnings("ReferenceEquality")
@@ -144,9 +163,9 @@ public class AblumPagerAdapter extends PagerAdapter {
      */
     public long getItemId(int position) {
         if(position == 0)
-            return 0;
+            return -1;
         if(position == list.size()+1)
-            return list.size()+1;
+            return -2;
         return list.get(position - 1).getQueueId();
     }
 
@@ -155,7 +174,6 @@ public class AblumPagerAdapter extends PagerAdapter {
     }
 
     public Fragment getItem(int position) {
-        Log.w("SSS","getItem-->"+position);
         if(position == 0 ){
             return  AblumFragment.newInstance(list.get(list.size() - 1).getDescription().getMediaUri().toString());
         }
@@ -165,10 +183,6 @@ public class AblumPagerAdapter extends PagerAdapter {
         return AblumFragment.newInstance(list.get(position - 1).getDescription().getMediaUri().toString());
     }
 
-    @Override
-    public int getItemPosition(@NonNull Object object) {
-        return POSITION_NONE;
-    }
 
     @Override
     public int getCount() {
@@ -176,4 +190,7 @@ public class AblumPagerAdapter extends PagerAdapter {
     }
 
 
+    public void setCurrentItem(int currentItem) {
+        this.currentItem = currentItem;
+    }
 }
