@@ -15,9 +15,9 @@
  */
 package app.cloudmusic.utils;
 
-import android.support.compat.BuildConfig;
 import android.util.Log;
 
+import app.cloudmusic.BuildConfig;
 
 
 public class LogHelper {

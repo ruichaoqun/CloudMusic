@@ -52,7 +52,6 @@ public class MainActivity extends BaseMediaActivity
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(broswerAdapter);
         broswerAdapter.setOnItemClickListener(this);
-        Log.w("BBB",Thread.currentThread().getName());
 
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -64,27 +63,8 @@ public class MainActivity extends BaseMediaActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.WAKE_LOCK,Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO,Manifest.permission.CAMERA},
-                100);
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK)!= PackageManager.PERMISSION_GRANTED){
 
-        }
     }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(requestCode == 100){
-            if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-            } else {
-                finish();
-            }
-        }
-    }
-
 
     @Override
     public void onBackPressed() {
