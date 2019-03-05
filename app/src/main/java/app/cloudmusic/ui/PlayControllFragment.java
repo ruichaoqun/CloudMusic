@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.support.v4.app.Fragment;
+import androidx.fragment.app.Fragment;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -25,7 +25,6 @@ import app.cloudmusic.utils.imageloader.ImageLoader;
 import app.cloudmusic.widget.PlayPauseView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import butterknife.Unbinder;
 
 public class PlayControllFragment extends Fragment{
     private static final long PROGRESS_UPDATE_INTERNAL = 1000;

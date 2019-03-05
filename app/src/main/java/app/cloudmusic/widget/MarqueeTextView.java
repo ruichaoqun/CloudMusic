@@ -2,7 +2,7 @@ package app.cloudmusic.widget;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.widget.TextView;

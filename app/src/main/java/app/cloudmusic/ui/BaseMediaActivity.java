@@ -3,19 +3,18 @@ package app.cloudmusic.ui;
 import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 
 import app.cloudmusic.R;
 import app.cloudmusic.service.MusicService;
-import app.cloudmusic.utils.LogHelper;
 
 /**
  * Created by Administrator on 2018/1/6.
